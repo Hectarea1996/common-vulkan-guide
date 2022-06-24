@@ -61,8 +61,9 @@
 	  (setf (instance app) instance)))))
 
   (format t "available extensions:~%")
-  (loop for extension-prop in (cvk:enumerate-instance-extension-properties nil)
-	do (format t "  ~S~%" (cvk:extension-properties-extensionName extension-prop))))
+  (cvk:with-enumerate-instance-extension-properties extension-props (nil)
+    (loop for extension-prop in extension-props
+	  do (format t "  ~S~%" (cvk:extension-properties-extensionName extension-prop)))))
 
 
 (defun main ()
