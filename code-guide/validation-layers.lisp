@@ -22,7 +22,6 @@
 (cvk:def-debug-utils-messenger-callback debug-callback (message-severity message-type callback-data user-data)
   (declare (ignore message-severity message-type user-data))
   (warn "validation layer: ~S" (cvk:debug-utils-messenger-callback-data-pMessage callback-data))
-
   cvk:VK_FALSE)
 
 
@@ -66,7 +65,7 @@
 			      cvk:VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
 	 :pfnUserCallback 'debug-callback
 	 :pUserData nil)
-
+	
 	(multiple-value-bind (messenger result) (create-debug-utils-messenger (instance app) create-info nil)
 	  (if (not (equal result cvk:VK_SUCCESS))
 	      (error "failed to set up debug messenger! ~S" result))
