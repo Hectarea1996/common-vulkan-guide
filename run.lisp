@@ -1,4 +1,4 @@
 
-(asdf:load-system "common-vulkan-guide" :force t)
+(asdf:load-system "common-vulkan-guide")
 
 (cvg:main)
