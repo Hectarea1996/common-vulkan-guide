@@ -36,7 +36,9 @@
   ((window :accessor window :initform nil)
    (instance :accessor instance :initform nil)
    (debug-messenger :accessor debug-messenger :initform nil)
-   (physical-device :accessor physical-device :initform nil)))
+   (physical-device :accessor physical-device :initform nil)
+   (device :accessor device :initform nil)
+   (graphics-queue :accessor graphics-queue :initform nil)))
 
 
 (defun create-debug-utils-messenger (instance create-info allocator)
@@ -107,11 +109,34 @@
     (if (not (physical-device app))
 	(error "failed to find a suitable GPU!"))))
 
+(defun create-logical-device (app)
+  (let ((indices (find-queue-families (physical-device app))))
+    (cvk:with-device-queue-create-info queue-create-info (:sType cvk:VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO
+							  :queueFamilyIndex (queue-family-indices-graphics-family indices)
+							  :queueCount 1
+							  :pQueuePriorities (list 1.0))
+      (cvk:with-physical-device-features device-features ()
+	(let ((enabled-layer-names (if *enable-validation-layers*
+				       (get-validation-layers)
+				       nil)))
+	  (cvk:with-device-create-info create-info (:sType cvk:VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO
+						    :pQueueCreateInfos (list queue-create-info)
+						    :queueCreateInfoCount 1
+						    :pEnabledFeatures device-features
+						    :enabledExtensionCount 0
+						    :enabledLayerCount (length enabled-layer-names)
+						    :ppEnabledLayerNames enabled-layer-names)
+	    (multiple-value-bind (device result) (cvk:create-device (physical-device app) create-info nil)
+	      (when (not (equal result cvk:VK_SUCCESS))
+		(error "failed to create logical device!"))
+	      (setf (device app) device)
+	      (setf (graphics-queue app) (cvk:get-device-queue device (queue-family-indices-graphics-family indices) 0)))))))))
 
 (defun init-vulkan (app)
   (create-instance app)
   (setup-debug-messenger app)
-  (pick-physical-device app))
+  (pick-physical-device app)
+  (create-logical-device app))
 
 
 (defun main-loop (app)
@@ -120,6 +145,8 @@
 
 
 (defun cleanup (app)
+  (cvk:destroy-device (device app) nil)
+  
   (if *enable-validation-layers*
       (destroy-debug-utils-messenger (instance app) (debug-messenger app) nil))
   
