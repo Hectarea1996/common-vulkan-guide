@@ -79,7 +79,8 @@
 (defun is-queue-family-indices-complete (indices)
   (queue-family-indices-graphics-family indices))
 
-(defun find-queue-families (device)
+(defun find-queue-families (app device)
+  (declare (ignore app))
   (let ((indices (make-queue-family-indices)))
     (cvk:with-get-physical-device-queue-family-properties queue-families (device)
       (loop for queue-family in queue-families
@@ -92,8 +93,8 @@
       indices)))
 
 
-(defun is-device-suitable (device)
-  (let ((indices (find-queue-families device)))
+(defun is-device-suitable (app device)
+  (let ((indices (find-queue-families app device)))
     (is-queue-family-indices-complete indices)))
 
 (defun pick-physical-device (app)
@@ -101,7 +102,7 @@
     (if (null devices)
 	(error "failed to find GPUs with Vulkan support!"))
     (loop for device in devices
-	  if (is-device-suitable device)
+	  if (is-device-suitable app device)
 	    do (setf (physical-device app) device)
 	    and return nil)
     (if (not (physical-device app))

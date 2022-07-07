@@ -36,9 +36,11 @@
   ((window :accessor window :initform nil)
    (instance :accessor instance :initform nil)
    (debug-messenger :accessor debug-messenger :initform nil)
+   (surface :accessor surface :initform nil)
    (physical-device :accessor physical-device :initform nil)
    (device :accessor device :initform nil)
-   (graphics-queue :accessor graphics-queue :initform nil)))
+   (graphics-queue :accessor graphics-queue :initform nil)
+   (present-queue :accessor present-queue :initform nil)))
 
 
 (defun create-debug-utils-messenger (instance create-info allocator)
@@ -76,13 +78,14 @@
 
 
 (defstruct queue-family-indices
-  (graphics-family nil))
+  (graphics-family nil)
+  (present-family nil))
 
 (defun is-queue-family-indices-complete (indices)
-  (queue-family-indices-graphics-family indices))
+  (and (queue-family-indices-graphics-family indices)
+       (queue-family-indices-present-family indices)))
 
 (defun find-queue-families (app device)
-  (declare (ignore app))
   (let ((indices (make-queue-family-indices)))
     (cvk:with-get-physical-device-queue-family-properties queue-families (device)
       (loop for queue-family in queue-families
@@ -90,6 +93,8 @@
 	    if (not (zerop (logand (cvk:queue-family-properties-queueFlags queue-family)
 				   cvk:VK_QUEUE_GRAPHICS_BIT)))
 	      do (setf (queue-family-indices-graphics-family indices) i)
+	    if (cvk:get-physical-device-surface-support device i (surface app))
+	      do (setf (queue-family-indices-present-family indices) i)
 	    if (is-queue-family-indices-complete indices)
 	      return nil)
       indices)))
@@ -111,18 +116,22 @@
 	(error "failed to find a suitable GPU!"))))
 
 (defun create-logical-device (app)
-  (let ((indices (find-queue-families app (physical-device app))))
-    (cvk:with-device-queue-create-info queue-create-info (:sType cvk:VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO
-							  :queueFamilyIndex (queue-family-indices-graphics-family indices)
-							  :queueCount 1
-							  :pQueuePriorities (list 1.0))
-      (cvk:with-physical-device-features device-features ()
+  (let* ((indices (find-queue-families app (physical-device app)))
+	 (unique-queue-families (remove-duplicates (list (queue-family-indices-graphics-family indices)
+							 (queue-family-indices-present-family indices))))
+	 (queue-create-infos (loop for queue-family in unique-queue-families
+				   collect (cvk:create-device-queue-create-info
+					    :sType cvk:VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO
+					    :queueFamilyIndex queue-family
+					    :queueCount 1
+					    :pQueuePriorities (list 1.0)))))
+     (cvk:with-physical-device-features device-features ()
 	(let ((enabled-layer-names (if *enable-validation-layers*
 				       (get-validation-layers)
 				       nil)))
 	  (cvk:with-device-create-info create-info (:sType cvk:VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO
-						    :pQueueCreateInfos (list queue-create-info)
-						    :queueCreateInfoCount 1
+						    :pQueueCreateInfos queue-create-infos
+						    :queueCreateInfoCount (length queue-create-infos)
 						    :pEnabledFeatures device-features
 						    :enabledExtensionCount 0
 						    :enabledLayerCount (length enabled-layer-names)
@@ -131,11 +140,21 @@
 	      (when (not (equal result cvk:VK_SUCCESS))
 		(error "failed to create logical device!"))
 	      (setf (device app) device)
-	      (setf (graphics-queue app) (cvk:get-device-queue device (queue-family-indices-graphics-family indices) 0)))))))))
+	      (setf (graphics-queue app) (cvk:get-device-queue device (queue-family-indices-graphics-family indices) 0))
+	      (setf (present-queue app) (cvk:get-device-queue device (queue-family-indices-present-family indices) 0))))))
+    (loop for queue-create-info in queue-create-infos
+	  do (cvk:destroy-device-queue-create-info queue-create-info))))
+
+(defun create-surface (app)
+  (multiple-value-bind (surface result) (glfw:create-window-surface (instance app) (window app) nil)
+    (when (not (equal result cvk:VK_SUCCESS))
+      (error "failed to create widnow surface!"))
+    (setf (surface app) surface)))
 
 (defun init-vulkan (app)
   (create-instance app)
   (setup-debug-messenger app)
+  (create-surface app)
   (pick-physical-device app)
   (create-logical-device app))
 
@@ -147,14 +166,11 @@
 
 (defun cleanup (app)
   (cvk:destroy-device (device app) nil)
-  
   (if *enable-validation-layers*
       (destroy-debug-utils-messenger (instance app) (debug-messenger app) nil))
-  
+  (cvk:destroy-surface (instance app) (surface app) nil)
   (cvk:destroy-instance (instance app) nil)
-  
   (glfw:destroy-window (window app))
-  
   (glfw:terminate))
 
 
