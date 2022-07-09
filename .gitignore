@@ -3,3 +3,6 @@
 *.lisp~
 *.fasl
 *.lisp#
+*.vert~
+*.frag~
+*.sh~
