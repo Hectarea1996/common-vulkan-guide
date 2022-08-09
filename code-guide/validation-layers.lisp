@@ -19,9 +19,9 @@
     extensions))
 
 
-(cvk:def-debug-utils-messenger-callback debug-callback (message-severity message-type callback-data user-data)
+(cvk:def-debug-utils-messenger-callback-ext-callback debug-callback (message-severity message-type callback-data user-data)
   (declare (ignore message-severity message-type user-data))
-  (warn "validation layer: ~S" (cvk:debug-utils-messenger-callback-data-pMessage callback-data))
+  (warn "validation layer: ~S" (cvk:debug-utils-messenger-callback-data-ext-pMessage callback-data))
   cvk:VK_FALSE)
 
 
@@ -38,24 +38,24 @@
    (debug-messenger :accessor debug-messenger :initform nil)))
 
 
-(defun create-debug-utils-messenger (instance create-info allocator)
-  (let ((func (cvk:get-instance-proc-addr instance "vkCreateDebugUtilsMessengerEXT")))
-    (if func
-	(funcall func instance create-info allocator)
-	(values nil cvk:VK_ERROR_EXTENSION_NOT_PRESENT))))
+;; (defun create-debug-utils-messenger (instance create-info allocator)
+;;   (let ((func (cvk:get-instance-proc-addr instance "vkCreateDebugUtilsMessengerEXT")))
+;;     (if func
+;; 	(funcall func instance create-info allocator)
+;; 	(values nil cvk:VK_ERROR_EXTENSION_NOT_PRESENT))))
 
 
-(defun destroy-debug-utils-messenger (instance debug-messenger allocator)
-  (let ((func (cvk:get-instance-proc-addr instance "vkDestroyDebugUtilsMessengerEXT")))
-    (if func
-	(funcall func instance debug-messenger allocator)
-	(values nil cvk:VK_ERROR_EXTENSION_NOT_PRESENT))))
+;; (defun destroy-debug-utils-messenger (instance debug-messenger allocator)
+;;   (let ((func (cvk:get-instance-proc-addr instance "vkDestroyDebugUtilsMessengerEXT")))
+;;     (if func
+;; 	(funcall func instance debug-messenger allocator)
+;; 	(values nil cvk:VK_ERROR_EXTENSION_NOT_PRESENT))))
 
 
 (defun setup-debug-messenger (app)
   (if *enable-validation-layers*
       
-      (cvk:with-debug-utils-messenger-create-info create-info
+      (cvk:with-debug-utils-messenger-create-info-ext create-info
 	(:sType cvk:VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT
 	 :messageSeverity (logior cvk:VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
 				  cvk:VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
@@ -66,7 +66,7 @@
 	 :pfnUserCallback 'debug-callback
 	 :pUserData nil)
 	
-	(multiple-value-bind (messenger result) (create-debug-utils-messenger (instance app) create-info nil)
+	(multiple-value-bind (messenger result) (cvk:create-debug-utils-messenger-ext (instance app) create-info nil)
 	  (if (not (equal result cvk:VK_SUCCESS))
 	      (error "failed to set up debug messenger! ~S" result))
 	  (setf (debug-messenger app) messenger)))))
@@ -84,7 +84,7 @@
 
 (defun cleanup (app)
   (if *enable-validation-layers*
-      (destroy-debug-utils-messenger (instance app) (debug-messenger app) nil))
+      (cvk:destroy-debug-utils-messenger-ext (instance app) (debug-messenger app) nil))
   
   (cvk:destroy-instance (instance app) nil)
   
@@ -116,17 +116,17 @@
   
   (cvk:with-application-info app-info (:sType cvk:VK_STRUCTURE_TYPE_APPLICATION_INFO
 				       :pApplicationName "Hello triangle"
-				       :applicationVersion (cvk:make-version 1 0 0)
+				       :applicationVersion (cvk:VK_MAKE_API_VERSION 1 0 0 0)
 				       :pEngineName "No Engine"
-				       :engineVersion (cvk:make-version 1 0 0)
-				       :apiVersion (cvk:make-version 1 0 0))
+				       :engineVersion (cvk:VK_MAKE_API_VERSION 1 0 0 0)
+				       :apiVersion (cvk:VK_MAKE_API_VERSION 1 0 0 0))
 
     (let ((extensions (get-required-extensions))
 	  (validation-layers (if *enable-validation-layers*
 				 (get-validation-layers)
 				 nil)))
 
-      (cvk:with-debug-utils-messenger-create-info debug-info
+      (cvk:with-debug-utils-messenger-create-info-ext debug-info
 	  (:sType cvk:VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT
 	   :messageSeverity (logior cvk:VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
 				    cvk:VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT

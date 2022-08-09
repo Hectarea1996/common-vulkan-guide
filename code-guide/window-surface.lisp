@@ -197,10 +197,10 @@
   
   (cvk:with-application-info app-info (:sType cvk:VK_STRUCTURE_TYPE_APPLICATION_INFO
 				       :pApplicationName "Hello triangle"
-				       :applicationVersion (cvk:make-version 1 0 0)
+				       :applicationVersion (cvk:VK_MAKE_API_VERSION 1 0 0)
 				       :pEngineName "No Engine"
-				       :engineVersion (cvk:make-version 1 0 0)
-				       :apiVersion (cvk:make-version 1 0 0))
+				       :engineVersion (cvk:VK_MAKE_API_VERSION 1 0 0)
+				       :apiVersion (cvk:VK_MAKE_API_VERSION 1 0 0))
 
     (let ((extensions (get-required-extensions))
 	  (validation-layers (if *enable-validation-layers*
