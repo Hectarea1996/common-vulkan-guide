@@ -38,18 +38,18 @@
    (debug-messenger :accessor debug-messenger :initform nil)))
 
 
-;; (defun create-debug-utils-messenger (instance create-info allocator)
-;;   (let ((func (cvk:get-instance-proc-addr instance "vkCreateDebugUtilsMessengerEXT")))
-;;     (if func
-;; 	(funcall func instance create-info allocator)
-;; 	(values nil cvk:VK_ERROR_EXTENSION_NOT_PRESENT))))
+(defun create-debug-utils-messenger (instance create-info allocator)
+  (let ((func (cvk:get-instance-proc-addr instance "vkCreateDebugUtilsMessengerEXT")))
+    (if func
+	(funcall func instance create-info allocator)
+	(values nil cvk:VK_ERROR_EXTENSION_NOT_PRESENT))))
 
 
-;; (defun destroy-debug-utils-messenger (instance debug-messenger allocator)
-;;   (let ((func (cvk:get-instance-proc-addr instance "vkDestroyDebugUtilsMessengerEXT")))
-;;     (if func
-;; 	(funcall func instance debug-messenger allocator)
-;; 	(values nil cvk:VK_ERROR_EXTENSION_NOT_PRESENT))))
+(defun destroy-debug-utils-messenger (instance debug-messenger allocator)
+  (let ((func (cvk:get-instance-proc-addr instance "vkDestroyDebugUtilsMessengerEXT")))
+    (if func
+	(funcall func instance debug-messenger allocator)
+	(values nil cvk:VK_ERROR_EXTENSION_NOT_PRESENT))))
 
 
 (defun setup-debug-messenger (app)
@@ -66,7 +66,7 @@
 	 :pfnUserCallback 'debug-callback
 	 :pUserData nil)
 	
-	(multiple-value-bind (messenger result) (cvk:create-debug-utils-messenger-ext (instance app) create-info nil)
+	(multiple-value-bind (messenger result) (create-debug-utils-messenger (instance app) create-info nil)
 	  (if (not (equal result cvk:VK_SUCCESS))
 	      (error "failed to set up debug messenger! ~S" result))
 	  (setf (debug-messenger app) messenger)))))
@@ -84,7 +84,7 @@
 
 (defun cleanup (app)
   (if *enable-validation-layers*
-      (cvk:destroy-debug-utils-messenger-ext (instance app) (debug-messenger app) nil))
+      (destroy-debug-utils-messenger (instance app) (debug-messenger app) nil))
   
   (cvk:destroy-instance (instance app) nil)
   
@@ -116,10 +116,10 @@
   
   (cvk:with-application-info app-info (:sType cvk:VK_STRUCTURE_TYPE_APPLICATION_INFO
 				       :pApplicationName "Hello triangle"
-				       :applicationVersion (cvk:VK_MAKE_API_VERSION 1 0 0 0)
+				       :applicationVersion (cvk:VK_MAKE_API_VERSION 0 1 0 0)
 				       :pEngineName "No Engine"
-				       :engineVersion (cvk:VK_MAKE_API_VERSION 1 0 0 0)
-				       :apiVersion (cvk:VK_MAKE_API_VERSION 1 0 0 0))
+				       :engineVersion (cvk:VK_MAKE_API_VERSION 0 1 0 0)
+				       :apiVersion cvk:VK_API_VERSION_1_0)
 
     (let ((extensions (get-required-extensions))
 	  (validation-layers (if *enable-validation-layers*
@@ -147,8 +147,9 @@
 
 	  (multiple-value-bind (instance result) (cvk:create-instance create-info nil)
 	    
-	    (if (not (equal result cvk:VK_SUCCESS))
-		(error "Failed to create instance"))
+	    (when (not (equal result cvk:VK_SUCCESS))
+	      (print result)
+	      (error "Failed to create instance"))
 
 	    (setf (instance app) instance)))))))
 

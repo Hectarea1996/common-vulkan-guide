@@ -19,9 +19,9 @@
     extensions))
 
 
-(cvk:def-debug-utils-messenger-callback debug-callback (message-severity message-type callback-data user-data)
+(cvk:def-debug-utils-messenger-callback-ext-callback debug-callback (message-severity message-type callback-data user-data)
   (declare (ignore message-severity message-type user-data))
-  (warn "validation layer: ~S" (cvk:debug-utils-messenger-callback-data-pMessage callback-data))
+  (warn "validation layer: ~S" (cvk:debug-utils-messenger-callback-data-ext-pMessage callback-data))
   cvk:VK_FALSE)
 
 
@@ -60,7 +60,7 @@
 (defun setup-debug-messenger (app)
   (if *enable-validation-layers*
       
-      (cvk:with-debug-utils-messenger-create-info create-info
+      (cvk:with-debug-utils-messenger-create-info-ext create-info
 	(:sType cvk:VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT
 	 :messageSeverity (logior cvk:VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
 				  cvk:VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
@@ -93,7 +93,7 @@
 	    if (not (zerop (logand (cvk:queue-family-properties-queueFlags queue-family)
 				   cvk:VK_QUEUE_GRAPHICS_BIT)))
 	      do (setf (queue-family-indices-graphics-family indices) i)
-	    if (cvk:get-physical-device-surface-support device i (surface app))
+	    if (cvk:get-physical-device-surface-support-khr device i (surface app))
 	      do (setf (queue-family-indices-present-family indices) i)
 	    if (is-queue-family-indices-complete indices)
 	      return nil)
@@ -168,7 +168,7 @@
   (cvk:destroy-device (device app) nil)
   (if *enable-validation-layers*
       (destroy-debug-utils-messenger (instance app) (debug-messenger app) nil))
-  (cvk:destroy-surface (instance app) (surface app) nil)
+  (cvk:destroy-surface-khr (instance app) (surface app) nil)
   (cvk:destroy-instance (instance app) nil)
   (glfw:destroy-window (window app))
   (glfw:terminate))
@@ -197,17 +197,17 @@
   
   (cvk:with-application-info app-info (:sType cvk:VK_STRUCTURE_TYPE_APPLICATION_INFO
 				       :pApplicationName "Hello triangle"
-				       :applicationVersion (cvk:VK_MAKE_API_VERSION 1 0 0)
+				       :applicationVersion (cvk:VK_MAKE_API_VERSION 0 1 0 0)
 				       :pEngineName "No Engine"
-				       :engineVersion (cvk:VK_MAKE_API_VERSION 1 0 0)
-				       :apiVersion (cvk:VK_MAKE_API_VERSION 1 0 0))
+				       :engineVersion (cvk:VK_MAKE_API_VERSION 0 1 0 0)
+				       :apiVersion cvk:VK_API_VERSION_1_0)
 
     (let ((extensions (get-required-extensions))
 	  (validation-layers (if *enable-validation-layers*
 				 (get-validation-layers)
 				 nil)))
 
-      (cvk:with-debug-utils-messenger-create-info debug-info
+      (cvk:with-debug-utils-messenger-create-info-ext debug-info
 	  (:sType cvk:VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT
 	   :messageSeverity (logior cvk:VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
 				    cvk:VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT

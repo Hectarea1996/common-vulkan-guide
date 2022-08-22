@@ -22,7 +22,7 @@
 (defun get-device-extensions ()
   (list cvk:VK_KHR_SWAPCHAIN_EXTENSION_NAME))
 
-(cvk:def-debug-utils-messenger-callback debug-callback (message-severity message-type callback-data user-data)
+(cvk:def-debug-utils-messenger-callback-ext-callback debug-callback (message-severity message-type callback-data user-data)
   (declare (ignore message-severity message-type user-data))
   (warn "validation layer: ~S" (cvk:debug-utils-messenger-callback-data-pMessage callback-data))
   cvk:VK_FALSE)
@@ -71,7 +71,7 @@
 (defun setup-debug-messenger (app)
   (if *enable-validation-layers*
       
-      (cvk:with-debug-utils-messenger-create-info create-info
+      (cvk:with-debug-utils-messenger-create-info-ext create-info
 	(:sType cvk:VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT
 	 :messageSeverity (logior cvk:VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
 				  cvk:VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
@@ -515,7 +515,7 @@
 				 (get-validation-layers)
 				 nil)))
 
-      (cvk:with-debug-utils-messenger-create-info debug-info
+      (cvk:with-debug-utils-messenger-create-info-ext debug-info
 	  (:sType cvk:VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT
 	   :messageSeverity (logior cvk:VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
 				    cvk:VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT

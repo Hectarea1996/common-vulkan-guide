@@ -41,10 +41,10 @@
 (defun create-instance (app)
   (cvk:with-application-info app-info (:sType cvk:VK_STRUCTURE_TYPE_APPLICATION_INFO
 				       :pApplicationName "Hello triangle"
-				       :applicationVersion (cvk:VK_MAKE_API_VERSION 1 0 0 0)
+				       :applicationVersion (cvk:VK_MAKE_API_VERSION 0 1 0 0)
 				       :pEngineName "No Engine"
-				       :engineVersion (cvk:VK_MAKE_API_VERSION 1 0 0 0)
-				       :apiVersion (cvk:VK_MAKE_API_VERSION 1 0 0 0))
+				       :engineVersion (cvk:VK_MAKE_API_VERSION 0 1 0 0)
+				       :apiVersion cvk:VK_API_VERSION_1_0)
 
     (let ((glfw-extensions (glfw:get-required-instance-extensions)))
 
