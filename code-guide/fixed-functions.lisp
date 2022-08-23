@@ -22,9 +22,9 @@
 (defun get-device-extensions ()
   (list cvk:VK_KHR_SWAPCHAIN_EXTENSION_NAME))
 
-(cvk:def-debug-utils-messenger-callback debug-callback (message-severity message-type callback-data user-data)
+(cvk:def-debug-utils-messenger-callback-ext-callback debug-callback (message-severity message-type callback-data user-data)
   (declare (ignore message-severity message-type user-data))
-  (warn "validation layer: ~S" (cvk:debug-utils-messenger-callback-data-pMessage callback-data))
+  (warn "validation layer: ~S" (cvk:debug-utils-messenger-callback-data-ext-pmessage callback-data))
   cvk:VK_FALSE)
 
 
@@ -102,7 +102,7 @@
 	    if (not (zerop (logand (cvk:queue-family-properties-queueFlags queue-family)
 				   cvk:VK_QUEUE_GRAPHICS_BIT)))
 	      do (setf (queue-family-indices-graphics-family indices) i)
-	    if (cvk:get-physical-device-surface-support device i (surface app))
+	    if (cvk:get-physical-device-surface-support-khr device i (surface app))
 	      do (setf (queue-family-indices-present-family indices) i)
 	    if (is-queue-family-indices-complete indices)
 	      return nil)
@@ -114,22 +114,22 @@
   (present-modes nil))
 
 (defun create-query-swap-chain-support (app device)
-  (let ((capabilities (cvk:create-get-physical-device-surface-capabilities device (surface app)))
-	(formats (cvk:create-get-physical-device-surface-formats device (surface app)))
-	(present-modes (cvk:get-physical-device-surface-present-modes device (surface app))))
+  (let ((capabilities (cvk:create-get-physical-device-surface-capabilities-khr device (surface app)))
+	(formats (cvk:create-get-physical-device-surface-formats-khr device (surface app)))
+	(present-modes (cvk:get-physical-device-surface-present-modes-khr device (surface app))))
     (make-swap-chain-support-details :capabilities capabilities
 				     :formats formats
 				     :present-modes present-modes)))
 
 (defun destroy-query-swap-chain-support (query-details)
-  (cvk:destroy-get-physical-device-surface-capabilities (swap-chain-support-details-capabilities query-details))
-  (cvk:destroy-get-physical-device-surface-formats (swap-chain-support-details-formats query-details)))
+  (cvk:destroy-get-physical-device-surface-capabilities-khr (swap-chain-support-details-capabilities query-details))
+  (cvk:destroy-get-physical-device-surface-formats-khr (swap-chain-support-details-formats query-details)))
 
 (defun choose-swap-surface-format (app available-formats)
   (declare (ignore app))
   (let ((chosen-format (loop for available-format in available-formats
-				if (and (equal (cvk:surface-format-format available-format) cvk:VK_FORMAT_B8G8R8A8_SRGB)
-					(equal (cvk:surface-format-colorSpace available-format) cvk:VK_COLOR_SPACE_SRGB_NONLINEAR_KHR))
+				if (and (equal (cvk:surface-format-khr-format available-format) cvk:VK_FORMAT_B8G8R8A8_SRGB)
+					(equal (cvk:surface-format-khr-colorSpace available-format) cvk:VK_COLOR_SPACE_SRGB_NONLINEAR_KHR))
 				  return available-format)))
     (or chosen-format (car available-formats))))
 
@@ -141,13 +141,13 @@
     (or chosen-present-mode cvk:VK_PRESENT_MODE_FIFO_KHR)))
 
 (defun create-choose-swap-extent (app capabilities)
-  (if (not (equal (cvk:extent-2d-width (cvk:surface-capabilities-currentExtent capabilities)) UINT32_MAX))
-      (let ((current-extent (cvk:surface-capabilities-currentExtent capabilities)))
+  (if (not (equal (cvk:extent-2d-width (cvk:surface-capabilities-khr-currentExtent capabilities)) UINT32_MAX))
+      (let ((current-extent (cvk:surface-capabilities-khr-currentExtent capabilities)))
 	(cvk:create-extent-2d :width (cvk:extent-2d-width current-extent)
 			      :height (cvk:extent-2d-height current-extent)))
       (multiple-value-bind (frame-width frame-height) (glfw:get-framebuffer-size (window app))
-	(let* ((min-image-extent (cvk:surface-capabilities-minImageExtent capabilities))
-	       (max-image-extent (cvk:surface-capabilities-maxImageExtent capabilities))
+	(let* ((min-image-extent (cvk:surface-capabilities-khr-minImageExtent capabilities))
+	       (max-image-extent (cvk:surface-capabilities-khr-maxImageExtent capabilities))
 	       (min-width (cvk:extent-2d-width min-image-extent))
 	       (min-height (cvk:extent-2d-height min-image-extent))
 	       (max-width (cvk:extent-2d-width max-image-extent))
@@ -236,11 +236,11 @@
 	 (surface-format (choose-swap-surface-format app (swap-chain-support-details-formats swap-chain-support)))
 	 (present-mode (choose-swap-present-mode app (swap-chain-support-details-present-modes swap-chain-support)))
 	 (extent (create-choose-swap-extent app (swap-chain-support-details-capabilities swap-chain-support)))
-	 (image-count (if (and (> (cvk:surface-capabilities-maxImageCount (swap-chain-support-details-capabilities swap-chain-support)) 0)
-			       (> (1+ (cvk:surface-capabilities-minImageCount (swap-chain-support-details-capabilities swap-chain-support)))
-				  (cvk:surface-capabilities-maxImageCount (swap-chain-support-details-capabilities swap-chain-support))))
-			  (cvk:surface-capabilities-maxImageCount (swap-chain-support-details-capabilities swap-chain-support))
-			  (1+ (cvk:surface-capabilities-minImageCount (swap-chain-support-details-capabilities swap-chain-support)))))
+	 (image-count (if (and (> (cvk:surface-capabilities-khr-maxImageCount (swap-chain-support-details-capabilities swap-chain-support)) 0)
+			       (> (1+ (cvk:surface-capabilities-khr-minImageCount (swap-chain-support-details-capabilities swap-chain-support)))
+				  (cvk:surface-capabilities-khr-maxImageCount (swap-chain-support-details-capabilities swap-chain-support))))
+			  (cvk:surface-capabilities-khr-maxImageCount (swap-chain-support-details-capabilities swap-chain-support))
+			  (1+ (cvk:surface-capabilities-khr-minImageCount (swap-chain-support-details-capabilities swap-chain-support)))))
 	 (indices (find-queue-families app (physical-device app)))
 	 (family-indices-list (list (queue-family-indices-graphics-family indices)
 				    (queue-family-indices-present-family indices)))
@@ -251,12 +251,12 @@
 			   cvk:VK_SHARING_MODE_EXCLUSIVE))
 	 (queue-family-index-count (if (not equal-families-p) 2 0))
 	 (family-indices (if (not equal-families-p) family-indices-list nil))
-	 (pre-transform (cvk:surface-capabilities-currentTransform (swap-chain-support-details-capabilities swap-chain-support))))
-    (cvk:with-swapchain-create-info create-info (:sType cvk:VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR
+	 (pre-transform (cvk:surface-capabilities-khr-currentTransform (swap-chain-support-details-capabilities swap-chain-support))))
+    (cvk:with-swapchain-create-info-khr create-info (:sType cvk:VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR
 						 :surface (surface app)
 						 :minImageCount image-count
-						 :imageFormat (cvk:surface-format-format surface-format)
-						 :imageColorSpace (cvk:surface-format-colorSpace surface-format)
+						 :imageFormat (cvk:surface-format-khr-format surface-format)
+						 :imageColorSpace (cvk:surface-format-khr-colorSpace surface-format)
 						 :imageExtent extent
 						 :imageArrayLayers 1
 						 :imageUsage cvk:VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
@@ -268,12 +268,12 @@
 						 :presentMode present-mode
 						 :clipped cvk:VK_TRUE
 						 :oldSwapchain nil)
-      (multiple-value-bind (swap-chain result) (cvk:create-swapchain (device app) create-info nil)
+      (multiple-value-bind (swap-chain result) (cvk:create-swapchain-khr (device app) create-info nil)
 	(when (not (equal result cvk:VK_SUCCESS))
 	  (error "failed to create swap chain!"))
 	(setf (swap-chain app) swap-chain)
-	(setf (swap-chain-images app) (cvk:get-swapchain-images (device app) (swap-chain app)))
-	(setf (swap-chain-image-format app) (cvk:surface-format-format surface-format))
+	(setf (swap-chain-images app) (cvk:get-swapchain-images-khr (device app) (swap-chain app)))
+	(setf (swap-chain-image-format app) (cvk:surface-format-khr-format surface-format))
 	(setf (swap-chain-extent app) extent)
 	(destroy-query-swap-chain-support swap-chain-support)))))
 
@@ -339,8 +339,8 @@
 									:primitiveRestartEnable cvk:VK_FALSE))
     (cvk:with-viewport viewport (:x 0.0
 				 :y 0.0
-				 :width (cvk:extent-2d-width (swap-chain-extent app))
-				 :height (cvk:extent-2d-height (swap-chain-extent app))
+				 :width (float (cvk:extent-2d-width (swap-chain-extent app)))
+				 :height (float (cvk:extent-2d-height (swap-chain-extent app)))
 				 :minDepth 0.0
 				 :maxDepth 1.0))
     (cvk:with-offset-2d scissor-offset (:x 0
@@ -420,12 +420,12 @@
   (cvk:destroy-pipeline-layout (device app) (pipeline-layout app) nil)
   (loop for image-view in (swap-chain-image-views app)
 	do (cvk:destroy-image-view (device app) image-view nil))
-  (cvk:destroy-swapchain (device app) (swap-chain app) nil)
+  (cvk:destroy-swapchain-khr (device app) (swap-chain app) nil)
   (destroy-choose-swap-extent app (swap-chain-extent app))
   (cvk:destroy-device (device app) nil)
   (if *enable-validation-layers*
       (destroy-debug-utils-messenger (instance app) (debug-messenger app) nil))
-  (cvk:destroy-surface (instance app) (surface app) nil)
+  (cvk:destroy-surface-khr (instance app) (surface app) nil)
   (cvk:destroy-instance (instance app) nil)
   (glfw:destroy-window (window app))
   (glfw:terminate))
@@ -455,10 +455,10 @@
   
   (cvk:with-application-info app-info (:sType cvk:VK_STRUCTURE_TYPE_APPLICATION_INFO
 				       :pApplicationName "Hello triangle"
-				       :applicationVersion (cvk:VK_MAKE_API_VERSION 1 0 0)
+				       :applicationVersion (cvk:VK_MAKE_API_VERSION 0 1 0 0)
 				       :pEngineName "No Engine"
-				       :engineVersion (cvk:VK_MAKE_API_VERSION 1 0 0)
-				       :apiVersion (cvk:VK_MAKE_API_VERSION 1 0 0))
+				       :engineVersion (cvk:VK_MAKE_API_VERSION 0 1 0 0)
+				       :apiVersion (cvk:VK_MAKE_API_VERSION 0 1 0 0))
 
     (let ((extensions (get-required-extensions))
 	  (validation-layers (if *enable-validation-layers*
