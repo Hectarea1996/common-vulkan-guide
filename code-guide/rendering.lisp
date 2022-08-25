@@ -515,7 +515,7 @@
     (cvk:with-rect-2d render-area (:offset offset
 				   :extent (swap-chain-extent app))
       (cvk:with-clear-color-value clear-color-value (:float32 '(0.0 0.0 0.0 0.0))
-	(cvk:with-clear-depth-stencil-value depth-stencil (:depth 0
+	(cvk:with-clear-depth-stencil-value depth-stencil (:depth 0.0
 							   :stencil 0)
 	  (cvk:with-clear-value clear-value (:color clear-color-value
 					     :depthStencil depth-stencil)
@@ -524,7 +524,7 @@
 							       :framebuffer (nth image-index (swap-chain-framebuffers app))
 							       :renderArea render-area
 							       :clearValueCount 1
-							       :pClearValues clear-value)
+							       :pClearValues (list clear-value))
 	      (cvk:cmd-begin-render-pass command-buffer render-pass-info cvk:VK_SUBPASS_CONTENTS_INLINE)))))))
   (cvk:cmd-bind-pipeline command-buffer cvk:VK_PIPELINE_BIND_POINT_GRAPHICS (graphics-pipeline app))
   (cvk:with-viewport viewport (:x 0.0
@@ -534,8 +534,8 @@
 			       :minDepth 0.0
 			       :maxDepth 1.0)
     (cvk:cmd-set-viewport command-buffer 0 1 (list viewport)))
-  (cvk:with-offset-2d offset (:x 0.0
-			      :y 0.0)
+  (cvk:with-offset-2d offset (:x 0
+			      :y 0)
     (cvk:with-rect-2d scissor (:offset offset
 			       :extent (swap-chain-extent app))
       (cvk:cmd-set-scissor command-buffer 0 1 (list scissor))))
@@ -577,9 +577,11 @@
 					 :pWaitDstStageMask wait-stages
 					 :commandBufferCount 1
 					 :pCommandBuffers (list (command-buffer app))
+					 :signalSemaphoreCount 1
 					 :pSignalSemaphores signal-semaphores)
 	(let ((result (cvk:queue-submit (graphics-queue app) (list submit-info) (in-flight-fence app))))
 	  (when (not (equal result cvk:VK_SUCCESS))
+	    (print result)
 	    (error "failed to submit draw command buffer!"))))
       (cvk:with-present-info-khr present-info (:sType cvk:VK_STRUCTURE_TYPE_PRESENT_INFO_KHR
 					       :waitSemaphoreCount 1
@@ -610,7 +612,8 @@
 (defun main-loop (app)
   (loop while (not (glfw:window-should-close (window app)))
 	do (glfw:poll-events)
-	   (draw-frame app)))
+	   (draw-frame app))
+  (cvk:device-wait-idle (device app)))
 
 
 (defun cleanup (app)
