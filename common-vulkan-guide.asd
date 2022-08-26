@@ -3,4 +3,4 @@
 (asdf:defsystem "common-vulkan-guide"
   :depends-on ("cl-glfw" "common-vulkan")
   :components ((:file "package")
-	       (:file "code-guide/frames-in-flight")))
+	       (:file "code-guide/swap-chain-recreation")))
