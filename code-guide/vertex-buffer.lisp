@@ -70,12 +70,12 @@
   (color :float :count 3))
 
 
-(defparameter vertices (list (create-vertex :pos #(0.0 -0.5)
-					    :color #(1.0 1.0 1.0))
-			     (create-vertex :pos #(0.5 0.5)
-					    :color #(0.0 1.0 0.0))
-			     (create-vertex :pos #(-0.5 0.5)
-					    :color #(0.0 0.0 1.0))))
+(defparameter vertices (list (create-vertex :pos '(0.0 -0.5)
+					    :color '(1.0 1.0 1.0))
+			     (create-vertex :pos '(0.5 0.5)
+					    :color '(0.0 1.0 0.0))
+			     (create-vertex :pos '(-0.5 0.5)
+					    :color '(0.0 0.0 1.0))))
 
 
 (defun create-binding-description ()
@@ -763,7 +763,9 @@
   (cvk:destroy-surface-khr (instance app) (surface app) nil)
   (cvk:destroy-instance (instance app) nil)
   (glfw:destroy-window (window app))
-  (glfw:terminate))
+  (glfw:terminate)
+  (loop for vert in vertices
+	do (destroy-vertex vert)))
 
 
 
