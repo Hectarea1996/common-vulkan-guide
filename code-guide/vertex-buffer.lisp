@@ -80,18 +80,18 @@
 
 (defun create-binding-description ()
   (cvk:create-vertex-input-binding-description :binding 0
-					       :stride (cvk:vulkan-struct-size 'vertex)
+					       :stride (cvk:sizeof 'vertex)
 					       :inputRate cvk:VK_VERTEX_INPUT_RATE_VERTEX))
 
 (defun create-attribute-descriptions ()
   (list (cvk:create-vertex-input-attribute-description :binding 0
 						       :location 0
 						       :format cvk:VK_FORMAT_R32G32_SFLOAT
-						       :offset (cvk:vulkan-struct-offset 'vertex 'pos))
+						       :offset (cvk:offsetof 'vertex 'pos))
 	(cvk:create-vertex-input-attribute-description :binding 0
 						       :location 1
 						       :format cvk:VK_FORMAT_R32G32B32_SFLOAT
-						       :offset (cvk:vulkan-struct-offset 'vertex 'color))))
+						       :offset (cvk:offsetof 'vertex 'color))))
 
 
 (defun create-debug-utils-messenger (instance create-info allocator)
@@ -544,7 +544,7 @@
 
 (defun create-vertex-buffer (app)
   (cvk:with-buffer-create-info buffer-info (:sType cvk:VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO
-					    :size (* (cvk:vulkan-struct-size 'vertex) (length vertices))
+					    :size (* (cvk:sizeof 'vertex) (length vertices))
 					    :usage cvk:VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
 					    :sharingMode cvk:VK_SHARING_MODE_EXCLUSIVE)
     (multiple-value-bind (vertex-buffer result) (cvk:create-buffer (device app) buffer-info nil)
@@ -763,9 +763,7 @@
   (cvk:destroy-surface-khr (instance app) (surface app) nil)
   (cvk:destroy-instance (instance app) nil)
   (glfw:destroy-window (window app))
-  (glfw:terminate)
-  (loop for vert in vertices
-	do (destroy-vertex vert)))
+  (glfw:terminate))
 
 
 

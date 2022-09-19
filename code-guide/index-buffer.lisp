@@ -62,7 +62,9 @@
    (in-flight-fences :accessor in-flight-fences :initform nil)
    (framebuffer-resized :accessor framebuffer-resized :initform nil)
    (vertex-buffer :accessor vertex-buffer :initform nil)
-   (vertex-buffer-memory :accessor vertex-buffer-memory :initform nil)))
+   (vertex-buffer-memory :accessor vertex-buffer-memory :initform nil)
+   (index-buffer :accessor index-buffer :initform nil)
+   (index-buffer-memory :accessor index-buffer-memory :initform nil)))
 
 
 (cvk:def-vulkan-struct vertex
@@ -70,12 +72,16 @@
   (color :float :count 3))
 
 
-(defparameter vertices (list (create-vertex :pos '(0.0 -0.5)
-					    :color '(1.0 1.0 1.0))
-			     (create-vertex :pos '(0.5 0.5)
+(defparameter vertices (list (create-vertex :pos '(-0.5 -0.5)
+					    :color '(1.0 0.0 0.0))
+			     (create-vertex :pos '(0.5 -0.5)
 					    :color '(0.0 1.0 0.0))
+			     (create-vertex :pos '(0.5 0.5)
+					    :color '(0.0 0.0 1.0))
 			     (create-vertex :pos '(-0.5 0.5)
-					    :color '(0.0 0.0 1.0))))
+					    :color '(1.0 1.0 1.0))))
+
+(defparameter indices (list 0 1 2 2 3 0))
 
 
 (defun create-binding-description ()
@@ -599,9 +605,28 @@
 									       cvk:VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 	(setf (vertex-buffer app) vertex-buffer
 	      (vertex-buffer-memory app) vertex-buffer-memory)
-	(copy-buffer app staging-buffer vertex-buffer buffer-size)
-	(cvk:destroy-buffer (device app) staging-buffer nil)
-	(cvk:free-memory (device app) staging-buffer-memory nil)))))
+	(copy-buffer app staging-buffer vertex-buffer buffer-size))
+      (cvk:destroy-buffer (device app) staging-buffer nil)
+      (cvk:free-memory (device app) staging-buffer-memory nil))))
+
+
+(defun create-index-buffer (app)
+  (let ((buffer-size (* (cvk:sizeof :uint16) (length indices))))
+    (multiple-value-bind (staging-buffer staging-buffer-memory) (create-buffer app buffer-size
+									       cvk:VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+									       (logior cvk:VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+										       cvk:VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+      (cvk:with-mapped-memory data ((device app) staging-buffer-memory 0 buffer-size 0)
+	(cvk:memcpy data :pointer indices :uint16))
+      (multiple-value-bind (index-buffer index-buffer-memory) (create-buffer app buffer-size
+									       (logior cvk:VK_BUFFER_USAGE_TRANSFER_DST_BIT
+										       cvk:VK_BUFFER_USAGE_INDEX_BUFFER_BIT)
+									       cvk:VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+	(setf (index-buffer app) index-buffer
+	      (index-buffer-memory app) index-buffer-memory)
+	(copy-buffer app staging-buffer index-buffer buffer-size))
+      (cvk:destroy-buffer (device app) staging-buffer nil)
+      (cvk:free-memory (device app) staging-buffer-memory nil))))
 
 
 (defun create-command-buffers (app)
@@ -642,6 +667,7 @@
   (let ((vertex-buffers (list (vertex-buffer app)))
 	(offsets (list 0)))
     (cvk:cmd-bind-vertex-buffers command-buffer 0 vertex-buffers offsets))
+  (cvk:cmd-bind-index-buffer command-buffer (index-buffer app) 0 cvk:VK_INDEX_TYPE_UINT16)
   (cvk:with-viewport viewport (:x 0.0
 			       :y 0.0
 			       :width (float (cvk:extent-2d-width (swap-chain-extent app)))
@@ -654,7 +680,7 @@
     (cvk:with-rect-2d scissor (:offset offset
 			       :extent (swap-chain-extent app))
       (cvk:cmd-set-scissor command-buffer 0 1 (list scissor))))
-  (cvk:cmd-draw command-buffer (length vertices) 1 0 0)
+  (cvk:cmd-draw-indexed command-buffer (length indices) 1 0 0 0)
   (cvk:cmd-end-render-pass command-buffer)
   (let ((result (cvk:end-command-buffer command-buffer)))
     (when (not (equal result cvk:VK_SUCCESS))
@@ -769,6 +795,7 @@
   (create-framebuffers app)
   (create-command-pool app)
   (create-vertex-buffer app)
+  (create-index-buffer app)
   (create-command-buffers app)
   (create-sync-objects app))
 
@@ -784,6 +811,8 @@
   (cleanup-swap-chain app)
   (cvk:destroy-buffer (device app) (vertex-buffer app) nil)
   (cvk:free-memory (device app) (vertex-buffer-memory app) nil)
+  (cvk:destroy-buffer (device app) (index-buffer app) nil)
+  (cvk:free-memory (device app) (index-buffer-memory app) nil)
   (cvk:destroy-pipeline (device app) (graphics-pipeline app) nil)
   (cvk:destroy-pipeline-layout (device app) (pipeline-layout app) nil)
   (cvk:destroy-render-pass (device app) (render-pass app) nil)
