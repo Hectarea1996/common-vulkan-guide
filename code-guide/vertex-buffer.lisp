@@ -69,7 +69,6 @@
   (pos :float :count 2)
   (color :float :count 3))
 
-
 (defparameter vertices (list (create-vertex :pos '(0.0 -0.5)
 					    :color '(1.0 1.0 1.0))
 			     (create-vertex :pos '(0.5 0.5)
